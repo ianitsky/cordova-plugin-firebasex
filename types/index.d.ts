@@ -116,7 +116,7 @@ interface FirebasePlugin {
         stackTrace?: object,
         success?: () => void,
         error?: (err: string) => void
-    )
+    ): void
     verifyPhoneNumber(
         success: (value: object) => void,
         error: (err: string) => void,
@@ -304,6 +304,29 @@ interface FirebasePlugin {
     ): void
     fetchFirestoreCollection(
         collection: string,
+        filters: array,
+        success: (collection: object) => void,
+        error: (err: string) => void
+    ): void
+    fetchDatabase(
+        path: string,
+        success: (collection: object) => void,
+        error: (err: string) => void
+    ): void
+    fetchDatabaseOnce(
+        path: string,
+        success: (collection: object) => void,
+        error: (err: string) => void
+    ): void
+    setDatabaseValue(
+        path: string,
+        value: object,
+        success: (collection: object) => void,
+        error: (err: string) => void
+    ): void
+    updateDatabaseChildren(
+        path: string,
+        value: object,
         success: (collection: object) => void,
         error: (err: string) => void
     ): void

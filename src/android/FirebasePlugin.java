@@ -45,6 +45,11 @@ import com.google.firebase.auth.GetTokenResult;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.auth.OAuthProvider;
 import com.google.firebase.auth.UserProfileChangeRequest;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -99,6 +104,7 @@ public class FirebasePlugin extends CordovaPlugin {
 
     protected static FirebasePlugin instance = null;
     private FirebaseAnalytics mFirebaseAnalytics;
+    private DatabaseReference database;
     private FirebaseFirestore firestore;
     private Gson gson;
     private FirebaseAuth.AuthStateListener authStateListener;
@@ -166,6 +172,8 @@ public class FirebasePlugin extends CordovaPlugin {
 
                     authStateListener = new AuthStateListener();
                     FirebaseAuth.getInstance().addAuthStateListener(authStateListener);
+
+                    database = FirebaseDatabase.getInstance().getReference();
 
 					firestore = FirebaseFirestore.getInstance();
                     gson = new Gson();
@@ -398,6 +406,18 @@ public class FirebasePlugin extends CordovaPlugin {
                 return true;
             } else if (action.equals("fetchFirestoreCollection")) {
                 this.fetchFirestoreCollection(args, callbackContext);
+                return true;
+            } else if (action.equals("fetchDatabase")) {
+                this.fetchDatabase(args, callbackContext);
+                return true;
+            } else if (action.equals("fetchDatabaseOnce")) {
+                this.fetchDatabaseOnce(args, callbackContext);
+                return true;
+            } else if (action.equals("updateDatabaseChildren")) {
+                this.updateDatabaseChildren(args, callbackContext);
+                return true;
+            } else if (action.equals("setDatabaseValue")) {
+                this.setDatabaseValue(args, callbackContext);
                 return true;
             } else if (action.equals("grantPermission")
                     || action.equals("setBadgeNumber")
@@ -1102,7 +1122,7 @@ public class FirebasePlugin extends CordovaPlugin {
         returnResults.put("phoneNumber", user.getPhoneNumber());
         returnResults.put("photoUrl", user.getPhotoUrl() == null ? null : user.getPhotoUrl().toString());
         returnResults.put("uid", user.getUid());
-        returnResults.put("providerId", user.getProviderId());
+        returnResults.put("providerId", user.getIdToken(false).getResult().getSignInProvider());
         returnResults.put("isAnonymous", user.isAnonymous());
 
         user.getIdToken(true).addOnSuccessListener(new OnSuccessListener<GetTokenResult>() {
@@ -2325,6 +2345,139 @@ public class FirebasePlugin extends CordovaPlugin {
         });
     }
 
+    private void handleDatabaseValue(Object value, CallbackContext callbackContext) throws JSONException {
+        if (value  == null) {
+            callbackContext.success("");
+            return;
+        }
+        if (value.getClass() == Long.class) {
+            callbackContext.success(((Long) value).intValue());
+            return;
+        }
+        if (value.getClass() == Double.class) {
+            callbackContext.success(value.toString());
+            return;
+        }
+        if (value.getClass() == String.class) {
+            callbackContext.success((String) value);
+            return;
+        }
+        if (value.getClass() == Boolean.class) {
+            callbackContext.success((Boolean) value ? 1 : 0);
+            return;
+        }
+        if (value.getClass() == ArrayList.class) {
+            callbackContext.success(objectToJsonArray(value));
+            return;
+        }
+        callbackContext.success(objectToJsonObject(value));
+    }
+
+    private void fetchDatabase(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    String path = args.getString(0);
+                    database.child(path).addValueEventListener(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            try {
+                                handleDatabaseValue(dataSnapshot.getValue(), callbackContext);
+                            } catch (Exception e) {
+                                handleExceptionWithContext(e, callbackContext);
+                            }
+                        }
+                      
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+                            handleExceptionWithContext(databaseError.toException(), callbackContext);
+                        }
+                    });
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
+    }
+
+    private void fetchDatabaseOnce(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    String path = args.getString(0);
+                    database.child(path).addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            try {
+                                handleDatabaseValue(dataSnapshot.getValue(), callbackContext);
+                            } catch (Exception e) {
+                                handleExceptionWithContext(e, callbackContext);
+                            }
+                        }
+                      
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+                            handleExceptionWithContext(databaseError.toException(), callbackContext);
+                        }
+                    });
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
+    }
+
+    private void setDatabaseValue(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    String path = args.getString(0);
+                    HashMap<String, Object> value = new Gson().fromJson(args.getJSONObject(1).toString(), HashMap.class);
+                    database.child(path).setValue(value)
+                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            callbackContext.success();
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            handleExceptionWithContext(e, callbackContext);
+                        }
+                    });
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
+    }
+
+    private void updateDatabaseChildren(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    String path = args.getString(0);
+                    HashMap<String, Object> value = new Gson().fromJson(args.getJSONObject(1).toString(), HashMap.class);
+                    database.child(path).updateChildren(value)
+                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            callbackContext.success();
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            handleExceptionWithContext(e, callbackContext);
+                        }
+                    });
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
+    }
 
     protected static void handleExceptionWithContext(Exception e, CallbackContext context) {
         String msg = e.toString();
@@ -2504,6 +2657,16 @@ public class FirebasePlugin extends CordovaPlugin {
     private JSONObject mapToJsonObject(Map<String, Object> map) throws JSONException {
         String jsonString = gson.toJson(map);
         return new JSONObject(jsonString);
+    }
+
+    private JSONObject objectToJsonObject(Object object) throws JSONException {
+        String jsonString = gson.toJson(object);
+        return new JSONObject(jsonString);
+    }
+
+    private JSONArray objectToJsonArray(Object object) throws JSONException {
+        String jsonString = gson.toJson(object);
+        return new JSONArray(jsonString);
     }
 
     private void logMessageToCrashlytics(String message){
