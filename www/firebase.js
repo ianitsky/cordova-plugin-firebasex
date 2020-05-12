@@ -387,3 +387,15 @@ exports.fetchFirestoreCollection = function (collection, filters, success, error
     if(filters && (typeof filters !== 'object' || typeof filters.length === 'undefined')) return error("'filters' must be a array specifying a list of filters to apply to documents in the Firestore collection");
     exec(success, error, "FirebasePlugin", "fetchFirestoreCollection", [collection, filters || []]);
 };
+
+exports.listenFirestoreCollection = function (collection, filters, listenerKey, success, error) {
+  if(typeof collection !== 'string') return error("'collection' must be a string specifying the Firestore collection name");
+  if(filters && (typeof filters !== 'object' || typeof filters.length === 'undefined')) return error("'filters' must be a array specifying a list of filters to apply to documents in the Firestore collection");
+  if(typeof listenerKey !== 'string') return error("'listenerKey' must be a string");
+  exec(success, error, "FirebasePlugin", "listenFirestoreCollection", [collection, filters || [], listenerKey]);
+};
+
+exports.unlistenFirestoreCollection = function (listenerKey, success, error) {
+  if(typeof listenerKey !== 'string') return error("'listenerKey' must be a string");
+  exec(success, error, "FirebasePlugin", "unlistenFirestoreCollection", [listenerKey]);
+};

@@ -15,6 +15,7 @@ import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
@@ -48,7 +49,10 @@ import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -130,6 +134,7 @@ public class FirebasePlugin extends CordovaPlugin {
 
     private Map<String, AuthCredential> authCredentials = new HashMap<String, AuthCredential>();
     private Map<String, OAuthProvider> authProviders = new HashMap<String, OAuthProvider>();
+    private Map<String, ListenerRegistration> firestoreListeners = new HashMap<String, ListenerRegistration>();
 
     @Override
     protected void pluginInitialize() {
@@ -398,6 +403,12 @@ public class FirebasePlugin extends CordovaPlugin {
                 return true;
             } else if (action.equals("fetchFirestoreCollection")) {
                 this.fetchFirestoreCollection(args, callbackContext);
+                return true;
+            } else if (action.equals("listenFirestoreCollection")) {
+                this.listenFirestoreCollection(args, callbackContext);
+                return true;
+            } else if (action.equals("unlistenFirestoreCollection")) {
+                this.unlistenFirestoreCollection(args, callbackContext);
                 return true;
             } else if (action.equals("grantPermission")
                     || action.equals("setBadgeNumber")
@@ -2249,56 +2260,62 @@ public class FirebasePlugin extends CordovaPlugin {
         });
     }
 
+    private Query firestoreQuery(String collection, JSONArray filters) throws JSONException {
+        Query query = firestore.collection(collection);
+
+        for(int i = 0; i < filters.length(); i++) {
+            JSONArray filter = filters.getJSONArray(i);
+            switch(filter.getString(0)) {
+                case "where":
+                    if (Objects.equals(filter.getString(2), new String("=="))) {
+                        query = query.whereEqualTo(filter.getString(1), filter.getString(3));
+                    }
+                    if (Objects.equals(filter.getString(2), new String("<"))) {
+                        query = query.whereLessThan(filter.getString(1), filter.getString(3));
+                    }
+                    if (Objects.equals(filter.getString(2), new String(">"))) {
+                        query = query.whereGreaterThan(filter.getString(1), filter.getString(3));
+                    }
+                    if (Objects.equals(filter.getString(2), new String("<="))) {
+                        query = query.whereLessThanOrEqualTo(filter.getString(1), filter.getString(3));
+                    }
+                    if (Objects.equals(filter.getString(2), new String(">="))) {
+                        query = query.whereGreaterThanOrEqualTo(filter.getString(1), filter.getString(3));
+                    }
+                    if (Objects.equals(filter.getString(2), new String("array-contains"))) {
+                        query = query.whereArrayContains(filter.getString(1), filter.getString(3));
+                    }
+                    break;
+                case "orderBy":
+                    Direction direction = Direction.ASCENDING;
+                    if (Objects.equals(filter.getString(2), new String("desc"))) {
+                        direction = Direction.DESCENDING;
+                    }
+                    query = query.orderBy(filter.getString(1), direction);
+                    break;
+                case "startAt":
+                    query = query.startAt(filter.getString(1));
+                    break;
+                case "endAt":
+                    query = query.endAt(filter.getString(1));
+                    break;
+                case "limit":
+                    query = query.limit(filter.getLong(1));
+                    break;
+            }
+        }
+
+        return query;
+    }
+
     private void fetchFirestoreCollection(JSONArray args, CallbackContext callbackContext) throws JSONException {
         cordova.getThreadPool().execute(new Runnable() {
             public void run() {
                 try {
                     String collection = args.getString(0);
                     JSONArray filters = args.getJSONArray(1);
-                    Query query = firestore.collection(collection);
 
-                    for(int i = 0; i < filters.length(); i++) {
-                        JSONArray filter = filters.getJSONArray(i);
-                        switch(filter.getString(0)) {
-                            case "where": 
-                                if (Objects.equals(filter.getString(2), new String("=="))) {
-                                    query = query.whereEqualTo(filter.getString(1), filter.getString(3));
-                                }
-                                if (Objects.equals(filter.getString(2), new String("<"))) {
-                                    query = query.whereLessThan(filter.getString(1), filter.getString(3));
-                                }
-                                if (Objects.equals(filter.getString(2), new String(">"))) {
-                                    query = query.whereGreaterThan(filter.getString(1), filter.getString(3));
-                                }
-                                if (Objects.equals(filter.getString(2), new String("<="))) {
-                                    query = query.whereLessThanOrEqualTo(filter.getString(1), filter.getString(3));
-                                }
-                                if (Objects.equals(filter.getString(2), new String(">="))) {
-                                    query = query.whereGreaterThanOrEqualTo(filter.getString(1), filter.getString(3));
-                                }
-                                if (Objects.equals(filter.getString(2), new String("array-contains"))) {
-                                    query = query.whereArrayContains(filter.getString(1), filter.getString(3));
-                                }
-                                break;
-                            case "orderBy": 
-                                Direction direction = Direction.ASCENDING;
-                                if (Objects.equals(filter.getString(2), new String("desc"))) {
-                                    direction = Direction.DESCENDING;
-                                }
-                                query = query.orderBy(filter.getString(1), direction);
-                                break;
-                            case "startAt":
-                                query = query.startAt(filter.getString(1));
-                                break;
-                            case "endAt":
-                                query = query.endAt(filter.getString(1));
-                                break;
-                            case "limit":
-                                query = query.limit(filter.getLong(1));
-                                break;
-                        }
-                    }
-                    
+                    Query query = firestoreQuery(collection, filters);
                     query.get()
                             .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                                 @Override
@@ -2325,6 +2342,72 @@ public class FirebasePlugin extends CordovaPlugin {
         });
     }
 
+    private void listenFirestoreCollection(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    String collection = args.getString(0);
+                    JSONArray filters = args.getJSONArray(1);
+                    String listenerKey = args.getString(2);
+
+                    Query query = firestoreQuery(collection, filters);
+                    ListenerRegistration registration = query.addSnapshotListener(new EventListener<QuerySnapshot>() {
+                        @Override
+                        public void onEvent(@Nullable QuerySnapshot task, @Nullable FirebaseFirestoreException firebaseFirestoreException) {
+                            if (firebaseFirestoreException != null) {
+                                handleExceptionWithContext(firebaseFirestoreException, callbackContext);
+                                return;
+                            }
+                            try {
+                                JSONObject jsonDocs = new JSONObject();
+                                for (DocumentSnapshot document : task.getDocuments()) {
+                                    jsonDocs.put(document.getId(), mapToJsonObject(document.getData()));
+                                }
+                                PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, jsonDocs);
+                                pluginResult.setKeepCallback(true);
+                                callbackContext.sendPluginResult(pluginResult);
+                            } catch (Exception e) {
+                                handleExceptionWithContext(e, callbackContext);
+                            }
+                        }
+                    });
+                    firestoreListeners.put(listenerKey, registration);
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
+    }
+
+    private void unlistenFirestoreCollection(JSONArray args, CallbackContext callbackContext) {
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                Thread t = new Thread();
+                t.start();
+                Thread.yield();
+                try {
+                    String listenerKey = args.getString(0);
+                    ListenerRegistration registration = firestoreListeners.get(listenerKey);
+
+                    int called = 0;
+                    while(registration == null) {
+                        Thread.sleep(1000); //Wait until the listener was completed
+                        registration = firestoreListeners.get(listenerKey);
+                        called++;
+                        if (called > 100) {
+                            throw new Exception("Maximum execution time exceeded to unlisten a not listened firestore collection");
+                        }
+                    }
+                    registration.remove();
+                    firestoreListeners.remove(listenerKey);
+                    callbackContext.success();
+                } catch
+                (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
+    }
 
     protected static void handleExceptionWithContext(Exception e, CallbackContext context) {
         String msg = e.toString();
@@ -2495,7 +2578,7 @@ public class FirebasePlugin extends CordovaPlugin {
         }
     }
 
-	private Map<String, Object> jsonStringToMap(String jsonString)  throws JSONException {
+    private Map<String, Object> jsonStringToMap(String jsonString)  throws JSONException {
         Type type = new TypeToken<Map<String, Object>>(){}.getType();
         return gson.fromJson(jsonString, type);
     }
