@@ -304,6 +304,19 @@ interface FirebasePlugin {
     ): void
     fetchFirestoreCollection(
         collection: string,
+        filters: object,
+        success: (collection: object) => void,
+        error: (err: string) => void
+    ): void
+    listenFirestoreCollection(
+        collection: string,
+        filters: object,
+        listenerKey: string,
+        success: (collection: object) => void,
+        error: (err: string) => void
+    ): void
+    unlistenFirestoreCollection(
+        listenerKey: string,
         success: (collection: object) => void,
         error: (err: string) => void
     ): void

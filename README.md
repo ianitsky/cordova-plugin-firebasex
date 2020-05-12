@@ -163,6 +163,8 @@ To help ensure this plugin is kept updated, new features are added and bugfixes 
     - [documentExistsInFirestoreCollection](#documentexistsinfirestorecollection)
     - [fetchDocumentInFirestoreCollection](#fetchdocumentinfirestorecollection)
     - [fetchFirestoreCollection](#fetchfirestorecollection)
+    - [listenFirestoreCollection](#listenfirestorecollection)
+    - [unlistenFirestoreCollection](#unlistenfirestorecollection)
 - [Credits](#credits)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -2856,14 +2858,14 @@ FirebasePlugin.fetchDocumentInFirestoreCollection(documentId, collection, functi
 ```
 
 ### fetchFirestoreCollection
-Fetches all the documents in the specific collection.
+Fetches the documents in the specific collection.
 
 **Parameters**:
 - {string} collection - name of top-level collection to fetch.
 - {array} filters - a list of filters to sort/filter the documents returned from your collection.
     - Supports `where`, `orderBy`, `startAt`, `endAt` and `limit` filters.
     - See the [Firestore documentation](https://firebase.google.com/docs/firestore/query-data/queries) for more details. 
-- {function} success - callback function to call on successfully deleting the document.
+- {function} success - callback function to call on successfully fetched the collection.
 Will be passed an {object} containing all the documents in the collection, indexed by document ID.
 If a Firebase collection with that name does not exist or it contains no documents, the object will be empty.
 - {function} error - callback function which will be passed a {string} error message as an argument.
@@ -2881,7 +2883,52 @@ FirebasePlugin.fetchFirestoreCollection(collection, filters, function(documents)
 });
 ```
 
+### listenFirestoreCollection
+Fetches and listen for changes a specific collection.
 
+**Parameters**:
+- {string} collection - name of top-level collection to fetch.
+- {array} filters - a list of filters to sort/filter the documents returned from your collection.
+    - Supports `where`, `orderBy`, `startAt`, `endAt` and `limit` filters.
+    - See the [Firestore documentation](https://firebase.google.com/docs/firestore/query-data/queries) for more details. 
+- {string} listenerKey - key for identify the listener
+- {function} success - callback function to call on successfully listen the collection.
+Will be passed an {object} containing all the documents in the collection, indexed by document ID.
+If a Firebase collection with that name does not exist or it contains no documents, the object will be empty.
+- {function} error - callback function which will be passed a {string} error message as an argument.
+
+```javascript
+var collection = "my_collection";
+var filters = [
+    ['where', 'field', '==', 'value'],
+    ['orderBy', 'field', 'desc']
+];
+var listenerKey = 'my_listener_key';
+FirebasePlugin.listenFirestoreCollection(collection, filters, listenerKey, function(documents){
+    console.log("Successfully fetched collection: "+JSON.stringify(documents));
+}, function(error){
+    console.error("Error fetching collection: "+error);
+});
+```
+
+### unlistenFirestoreCollection
+Unlisten the listened collection.
+
+**Parameters**:
+- {string} listenerKey - key for identify the listener
+- {function} success - callback function to call on successfully unlistening the listener.
+Will be passed an {object} containing all the documents in the collection, indexed by document ID.
+If a Firebase collection with that name does not exist or it contains no documents, the object will be empty.
+- {function} error - callback function which will be passed a {string} error message as an argument.
+
+```javascript
+var listenerKey = 'my_listener_key';
+FirebasePlugin.unlistenFirestoreCollection(listenerKey, function(){
+    console.log("Successfully unlistened collection");
+}, function(error){
+    console.error("Error unlistening collection");
+});
+```
 
 # Credits
 - [@robertarnesson](https://github.com/robertarnesson) for the original [cordova-plugin-firebase](https://github.com/arnesson/cordova-plugin-firebase) from which this plugin is forked.
