@@ -3098,14 +3098,14 @@ FirebasePlugin.fetchFirestoreCollection(collection, filters, function(documents)
 });
 ```
 
-### listenFirestoreCollection
+### listenFirestoreCollection (Android only)
 Fetches and listen for changes a specific collection.
 
 **Parameters**:
 - {string} collection - name of top-level collection to fetch.
 - {array} filters - a list of filters to sort/filter the documents returned from your collection.
     - Supports `where`, `orderBy`, `startAt`, `endAt` and `limit` filters.
-    - See the [Firestore documentation](https://firebase.google.com/docs/firestore/query-data/queries) for more details. 
+    - See the [Firestore documentation](https://firebase.google.com/docs/firestore/query-data/queries) for more details.
 - {string} listenerKey - key for identify the listener
 - {function} success - callback function to call on successfully listen the collection.
 Will be passed an {object} containing all the documents in the collection, indexed by document ID.
@@ -3126,7 +3126,7 @@ FirebasePlugin.listenFirestoreCollection(collection, filters, listenerKey, funct
 });
 ```
 
-### unlistenFirestoreCollection
+### unlistenFirestoreCollection (Android only)
 Unlisten the listened collection.
 
 **Parameters**:
