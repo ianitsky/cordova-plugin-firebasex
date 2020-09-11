@@ -2336,7 +2336,8 @@ public class FirebasePlugin extends CordovaPlugin {
             public void run() {
                 try {
                     String path = args.getString(0);
-                    database.child(path).addValueEventListener(new ValueEventListener() {
+                    DatabaseReference reference = database.child(path);
+                    ValueEventListener listener = new ValueEventListener() {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
                             try {
@@ -2350,7 +2351,10 @@ public class FirebasePlugin extends CordovaPlugin {
                         public void onCancelled(DatabaseError databaseError) {
                             handleExceptionWithContext(databaseError.toException(), callbackContext);
                         }
-                    });
+                    };
+                    reference.addValueEventListener(listener);
+                    databaseReferences.put(listenerKey, reference);
+                    databaseListeners.put(listenerKey, listener);
                 } catch (Exception e) {
                     handleExceptionWithContext(e, callbackContext);
                 }
