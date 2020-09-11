@@ -384,9 +384,15 @@ exports.fetchFirestoreCollection = function (collection, filters, success, error
     exec(success, error, "FirebasePlugin", "fetchFirestoreCollection", [collection, filters || []]);
 };
 
-exports.fetchDatabase = function (path, success, error) {
+exports.fetchDatabase = function (path, listenerKey, success, error) {
   if(typeof path !== 'string') return error("'path' must be a string specifying the Database document path");
+    if(typeof listenerKey !== 'string') return error("'listenerKey' must be a string");
   exec(success, error, "FirebasePlugin", "fetchDatabase", [path]);
+};
+
+exports.unlistenDatabaseValue = function (listenerKey, success, error) {
+    if(typeof listenerKey !== 'string') return error("'listenerKey' must be a string");
+    exec(success, error, "FirebasePlugin", "unlistenDatabaseValueEvents", [listenerKey]);
 };
 
 exports.fetchDatabaseOnce = function (path, success, error) {

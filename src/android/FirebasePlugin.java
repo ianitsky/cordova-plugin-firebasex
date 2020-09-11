@@ -407,6 +407,9 @@ public class FirebasePlugin extends CordovaPlugin {
             } else if (action.equals("fetchDatabase")) {
                 this.fetchDatabase(args, callbackContext);
                 return true;
+             } else if (action.equals("unlistenDatabaseValueEvents")) {
+             this.unlistenDatabaseValueEvents(args, callbackContext);
+             return true;
             } else if (action.equals("fetchDatabaseOnce")) {
                 this.fetchDatabaseOnce(args, callbackContext);
                 return true;
@@ -2342,7 +2345,7 @@ public class FirebasePlugin extends CordovaPlugin {
                                 handleExceptionWithContext(e, callbackContext);
                             }
                         }
-                      
+
                         @Override
                         public void onCancelled(DatabaseError databaseError) {
                             handleExceptionWithContext(databaseError.toException(), callbackContext);
@@ -2354,6 +2357,43 @@ public class FirebasePlugin extends CordovaPlugin {
             }
         });
     }
+
+    private void unlistenDatabaseValueEvents(JSONArray args, CallbackContext callbackContext) {
+            cordova.getThreadPool().execute(new Runnable() {
+                public void run() {
+                    try {
+                        String listenerKey = args.getString(0);
+
+                        DatabaseReference reference = databaseReferences.get(listenerKey);
+                        ValueEventListener listener = databaseListeners.get(listenerKey);
+
+                        if (reference == null || listener == null) {
+                            Thread t = new Thread();
+                            t.start();
+                            Thread.yield();
+                        }
+
+                        int called = 0;
+                        while(reference == null || listener == null) {
+                            Thread.sleep(1000); //Wait until the listener was completed
+                            reference = databaseReferences.get(listenerKey);
+                            listener = databaseListeners.get(listenerKey);
+                            called++;
+                            if (called > 100) {
+                                throw new Exception("Maximum execution time exceeded to unlisten a not listened firestore collection");
+                            }
+                        }
+
+                        reference.removeEventListener(listener);
+                        databaseReferences.remove(listenerKey);
+                        databaseListeners.remove(listenerKey);
+                        callbackContext.success();
+                    } catch (Exception e) {
+                        handleExceptionWithContext(e, callbackContext);
+                    }
+                }
+            });
+        }
 
     private void fetchDatabaseOnce(JSONArray args, CallbackContext callbackContext) throws JSONException {
         cordova.getThreadPool().execute(new Runnable() {
@@ -2369,7 +2409,7 @@ public class FirebasePlugin extends CordovaPlugin {
                                 handleExceptionWithContext(e, callbackContext);
                             }
                         }
-                      
+
                         @Override
                         public void onCancelled(DatabaseError databaseError) {
                             handleExceptionWithContext(databaseError.toException(), callbackContext);
