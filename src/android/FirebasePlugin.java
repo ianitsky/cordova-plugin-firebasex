@@ -135,6 +135,8 @@ public class FirebasePlugin extends CordovaPlugin {
 
     private Map<String, AuthCredential> authCredentials = new HashMap<String, AuthCredential>();
     private Map<String, OAuthProvider> authProviders = new HashMap<String, OAuthProvider>();
+    private Map<String, DatabaseReference> databaseReferences = new HashMap<String, DatabaseReference>();
+    private Map<String, ValueEventListener> databaseListeners = new HashMap<String, ValueEventListener>();
 
     @Override
     protected void pluginInitialize() {
@@ -2336,6 +2338,8 @@ public class FirebasePlugin extends CordovaPlugin {
             public void run() {
                 try {
                     String path = args.getString(0);
+                    String listenerKey = args.getString(1);
+
                     DatabaseReference reference = database.child(path);
                     ValueEventListener listener = new ValueEventListener() {
                         @Override
