@@ -433,3 +433,29 @@ exports.functionsHttpsCallable = function (name, args, success, error) {
   if(typeof name !== 'string') return error("'collection' must be a string specifying the Firestore collection name");
   exec(success, error, "FirebasePlugin", "functionsHttpsCallable", [name, args]);
 };
+
+exports.fetchDatabase = function (path, listenerKey, success, error) {
+  if(typeof path !== 'string') return error("'path' must be a string specifying the Database document path");
+    if(typeof listenerKey !== 'string') return error("'listenerKey' must be a string");
+  exec(success, error, "FirebasePlugin", "fetchDatabase", [path]);
+};
+
+exports.unlistenDatabaseValue = function (listenerKey, success, error) {
+    if(typeof listenerKey !== 'string') return error("'listenerKey' must be a string");
+    exec(success, error, "FirebasePlugin", "unlistenDatabaseValueEvents", [listenerKey]);
+};
+
+exports.fetchDatabaseOnce = function (path, success, error) {
+  if(typeof path !== 'string') return error("'path' must be a string specifying the Database document path");
+  exec(success, error, "FirebasePlugin", "fetchDatabaseOnce", [path]);
+};
+
+exports.setDatabaseValue = function (path, value, success, error) {
+  if(typeof path !== 'string') return error("'path' must be a string specifying the Database document path");
+  exec(success, error, "FirebasePlugin", "setDatabaseValue", [path, value]);
+};
+
+exports.updateDatabaseChildren = function (path, value, success, error) {
+  if(typeof path !== 'string') return error("'path' must be a string specifying the Database document path");
+  exec(success, error, "FirebasePlugin", "updateDatabaseChildren", [path, value]);
+};

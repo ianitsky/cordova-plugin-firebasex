@@ -181,6 +181,11 @@ To help ensure this plugin is kept updated, new features are added and bugfixes 
     - [removeFirestoreListener](#removefirestorelistener)
    - [Functions](#functions)
     - [functionsHttpsCallable](#functionshttpscallable)
+  - [Realtime Database](#realtime-database)
+    - [fetchDatabase](#fetchdatabase)
+    - [fetchDatabaseOnce](#fetchdatabaseonce)
+    - [setDatabaseValue](#setdatabasevalue)
+    - [updateDatabaseChildren](#updatedatabasechildren)
 - [Credits](#credits)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -3506,7 +3511,91 @@ FirebasePlugin.functionsHttpsCallable(functionName, args, function(result){
 });
 ```
 
+## Realtime Database
+These plugin API functions provide CRUD operations for working with realtime database.
+
+### fetchDatabase()
+[Listen for changes on a database path](https://firebase.google.com/docs/database/android/read-and-write#listen_for_value_events)
+
+**Parameters**:
+- {string} path - path of the value that you will listen
+- {function} success - callback function to call on successfully fetched data.
+- {function} error - callback function which will be passed a {string} error message as an argument.
+
+```javascript
+var path = `users/${uid}/${property}`;
+
+FirebasePlugin.fetchDatabase(path, function(result){
+    console.log("Successfully fetched database data: "+JSON.stringify(result));
+}, function(error){
+    console.error("Error fetching data: "+error);
+});
+```
+
+### fetchDatabaseOnce
+[Get values form a database path only one time](https://firebase.google.com/docs/database/android/read-and-write#read_data_once)
+
+**Parameters**:
+- {string} path - path of the value that you will fetch
+- {function} success - callback function to call on successfully fetched data.
+- {function} error - callback function which will be passed a {string} error message as an argument.
+
+```javascript
+var path = `users/${uid}/${property}`;
+
+FirebasePlugin.fetchDatabaseOnce(path, function(result){
+    console.log("Successfully fetched database data: "+JSON.stringify(result));
+}, function(error){
+    console.error("Error fetching data: "+error);
+});
+```
+
+### setDatabaseValue
+[Save a value on the path](https://firebase.google.com/docs/database/android/read-and-write#basic_write).
+
+- Note: this function replaces any existing value and child values inside the defined path
+
+**Parameters**:
+- {string} path - path of the value that you will save
+- {object} value - value that you will save
+- {function} success - callback function to call on successfully saved data.
+- {function} error - callback function which will be passed a {string} error message as an argument.
+
+```javascript
+var path = `users/${uid}/actions/${action}`;
+var value = { created_at: new Date().getTime(), updated_at: new Date().getTime()}
+
+FirebasePlugin.setDatabaseValue(path, value, function(result){
+    console.log("Successfully saved database data");
+}, function(error){
+    console.error("Error saving data: "+error);
+});
+```
+
+### updateDatabaseChildren
+[Save/update a value on the path.](https://firebase.google.com/docs/database/android/read-and-write#update_specific_fields)
+
+- Note: this function works same as setDatabaseValue BUT does NOT replaces any existing value and child values inside the defined path.
+
+**Parameters**:
+- {string} path - path of the value that you will save
+- {object} value - value that you will save
+- {function} success - callback function to call on successfully saved data.
+- {function} error - callback function which will be passed a {string} error message as an argument.
+
+```javascript
+var path = `users/${uid}/actions/${action}`;
+var value = { updated_at: new Date().getTime() }
+
+FirebasePlugin.updateDatabaseChildren(path, value, function(result){
+    console.log("Successfully updated database data");
+}, function(error){
+    console.error("Error updating data: "+error);
+});
+```
+
 # Credits
 - [@robertarnesson](https://github.com/robertarnesson) for the original [cordova-plugin-firebase](https://github.com/arnesson/cordova-plugin-firebase) from which this plugin is forked.
 - [@sagrawal31](https://github.com/sagrawal31) and [Wiz Panda](https://github.com/wizpanda) for contributions via [cordova-plugin-firebase-lib](https://github.com/wizpanda/cordova-plugin-firebase-lib).
 - [Full list of contributors](https://github.com/dpa99c/cordova-plugin-firebasex/graphs/contributors)
+
