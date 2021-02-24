@@ -302,7 +302,7 @@ exports.reauthenticateWithCredential = function (credential, success, error) {
 };
 
 exports.isUserSignedIn = function (success, error) {
-    exec(ensureBooleanFn(success), error, "FirebasePlugin", "isUserSignedIn", []);
+    exec(success, error, "FirebasePlugin", "isUserSignedIn", []);
 };
 
 exports.signOutUser = function (success, error) {

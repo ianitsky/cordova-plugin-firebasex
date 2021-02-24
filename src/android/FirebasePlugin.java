@@ -124,6 +124,8 @@ public class FirebasePlugin extends CordovaPlugin {
     private static final String ANALYTICS_COLLECTION_ENABLED = "firebase_analytics_collection_enabled";
     private static final String PERFORMANCE_COLLECTION_ENABLED = "firebase_performance_collection_enabled";
 
+    private static Integer mIsUserSignedIn = -1;
+
     private static boolean inBackground = true;
     private static ArrayList<Bundle> notificationStack = null;
     private static CallbackContext notificationCallbackContext;
@@ -1025,17 +1027,16 @@ public class FirebasePlugin extends CordovaPlugin {
 
 
     public void isUserSignedIn(final CallbackContext callbackContext, final JSONArray args){
-        cordova.getThreadPool().execute(new Runnable() {
-            public void run() {
-                try {
-                    boolean isSignedIn = FirebaseAuth.getInstance().getCurrentUser() != null;
-                    callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, isSignedIn));
-                } catch (Exception e) {
-                    handleExceptionWithContext(e, callbackContext);
+            cordova.getThreadPool().execute(new Runnable() {
+                public void run() {
+                    try {
+                        callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, mIsUserSignedIn));
+                    } catch (Exception e) {
+                        handleExceptionWithContext(e, callbackContext);
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
 
     public void signOutUser(final CallbackContext callbackContext, final JSONArray args){
         cordova.getThreadPool().execute(new Runnable() {
@@ -2742,20 +2743,20 @@ public class FirebasePlugin extends CordovaPlugin {
     }
 
     private static class AuthStateListener implements FirebaseAuth.AuthStateListener {
-        @Override
-        public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-            try {
-                if(!FirebasePlugin.instance.authStateChangeListenerInitialized){
-                    FirebasePlugin.instance.authStateChangeListenerInitialized = true;
-                }else{
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                try {
+                    if(!FirebasePlugin.instance.authStateChangeListenerInitialized){
+                        FirebasePlugin.instance.authStateChangeListenerInitialized = true;
+                    }
                     FirebaseUser user = firebaseAuth.getCurrentUser();
-                    FirebasePlugin.instance.executeGlobalJavascript(JS_GLOBAL_NAMESPACE+"_onAuthStateChange("+(user != null ? "true" : "false")+")");
+                    mIsUserSignedIn = user != null ? 1 : 0;
+                    FirebasePlugin.instance.executeGlobalJavascript(JS_GLOBAL_NAMESPACE+"_onAuthStateChange("+mIsUserSignedIn+")");
+                } catch (Exception e) {
+                    handleExceptionWithoutContext(e);
                 }
-            } catch (Exception e) {
-                handleExceptionWithoutContext(e);
             }
         }
-    }
 
     private Map<String, Object> jsonStringToMap(String jsonString)  throws JSONException {
         Type type = new TypeToken<Map<String, Object>>(){}.getType();

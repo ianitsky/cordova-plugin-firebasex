@@ -190,7 +190,7 @@ export interface FirebasePlugin {
         error?: (err: string) => void
     ): void
     isUserSignedIn(
-        success: (isSignedIn: boolean) => void,
+        success: (isSignedIn: number) => void,
         error?: (err: string) => void
     ): void
     signOutUser(
